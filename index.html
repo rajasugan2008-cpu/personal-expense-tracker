@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Personal Expense Tracker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand"><span class="logo" aria-hidden="true">₹</span><span>Expense Tracker</span></div>
+    <nav aria-label="Main navigation">
+      <button class="nav-btn active" data-view="dashboard"><span aria-hidden="true">▦</span><span>Dashboard</span></button>
+      <button class="nav-btn" data-view="transactions"><span aria-hidden="true">☰</span><span>Transactions</span></button>
+      <button class="nav-btn" data-view="budget"><span aria-hidden="true">◔</span><span>Budget</span></button>
+      <button class="nav-btn" data-view="data"><span aria-hidden="true">⇅</span><span>Data</span></button>
+      <button class="nav-btn" id="themeBtn" type="button"><span aria-hidden="true" id="themeIcon">☾</span><span id="themeLabel">Dark mode</span></button>
+    </nav>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div>
+        <h1 id="pageTitle">Dashboard</h1>
+        <p class="muted" id="monthLabel"></p>
+      </div>
+      <div class="actions">
+        <label for="monthPicker" class="sr">Select month</label>
+        <input type="month" id="monthPicker">
+        <button class="btn primary" id="addBtn" type="button">+ Add transaction</button>
+      </div>
+    </header>
+
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view">
+      <div class="cards">
+        <article class="card stat"><h2>Total Balance</h2><p class="num" id="sBalance">₹0</p><small>All time</small></article>
+        <article class="card stat"><h2>Total Income</h2><p class="num pos" id="sIncome">₹0</p><small>Selected month</small></article>
+        <article class="card stat"><h2>Total Expenses</h2><p class="num neg" id="sExpense">₹0</p><small>Selected month</small></article>
+        <article class="card stat"><h2>Remaining Budget</h2><p class="num" id="sRemaining">Not set</p><small>Selected month</small></article>
+      </div>
+      <div class="grid2">
+        <article class="card"><h2>Income vs expenses</h2><p class="muted small">Last 6 months</p><div id="monthlyChart"></div></article>
+        <article class="card"><h2>Spending by category</h2><p class="muted small">Selected month</p><div id="categoryChart"></div></article>
+      </div>
+      <article class="card">
+        <div class="row-between"><h2>Recent transactions</h2><button class="btn ghost" data-goto="transactions" type="button">View all</button></div>
+        <div id="recentList"></div>
+      </article>
+    </section>
+
+    <!-- Transactions -->
+    <section id="view-transactions" class="view" hidden>
+      <article class="card">
+        <form id="filters" class="filters" aria-label="Filter transactions">
+          <div><label for="fSearch">Search</label><input id="fSearch" type="search" placeholder="Title or notes"></div>
+          <div><label for="fType">Type</label><select id="fType"><option value="all">All</option><option value="income">Income</option><option value="expense">Expense</option></select></div>
+          <div><label for="fCat">Category</label><select id="fCat"></select></div>
+          <div><label for="fFrom">From</label><input id="fFrom" type="date"></div>
+          <div><label for="fTo">To</label><input id="fTo" type="date"></div>
+          <div><label for="fSort">Sort by</label><select id="fSort"><option value="new">Newest</option><option value="old">Oldest</option><option value="high">Highest amount</option><option value="low">Lowest amount</option></select></div>
+          <div class="end"><button class="btn ghost" id="resetFilters" type="button">Reset filters</button></div>
+        </form>
+        <p class="muted small" id="resultCount"></p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Transaction</th><th>Category</th><th>Date</th><th class="right">Amount</th><th class="right">Actions</th></tr></thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+        <div id="txEmpty"></div>
+      </article>
+    </section>
+
+    <!-- Budget -->
+    <section id="view-budget" class="view" hidden>
+      <article class="card">
+        <h2>Monthly spending budget</h2>
+        <p class="muted small">One budget applies to every month. Progress uses expenses for the selected month only.</p>
+        <form id="budgetForm" class="inline-form" novalidate>
+          <div><label for="budgetInput">Budget amount (₹)</label><input id="budgetInput" type="number" min="0" step="0.01" inputmode="decimal"></div>
+          <button class="btn primary" type="submit">Save budget</button>
+          <button class="btn ghost" id="clearBudget" type="button">Remove budget</button>
+        </form>
+        <p class="error" id="budgetError" role="alert"></p>
+        <div id="budgetPanel"></div>
+      </article>
+    </section>
+
+    <!-- Data -->
+    <section id="view-data" class="view" hidden>
+      <article class="card">
+        <h2>Your data</h2>
+        <p class="muted small">Everything is stored only in this browser (LocalStorage). There is no cloud or multi-device sync, and clearing browser data deletes it.</p>
+        <div class="btn-row">
+          <button class="btn" id="exportBtn" type="button">Export CSV</button>
+          <button class="btn" id="importBtn" type="button">Import CSV</button>
+          <input type="file" id="importFile" accept=".csv,text/csv" hidden>
+          <button class="btn" id="demoBtn" type="button">Load demo data</button>
+          <button class="btn" id="removeDemoBtn" type="button">Remove demo data</button>
+          <button class="btn danger" id="resetBtn" type="button">Reset all data</button>
+        </div>
+        <p class="muted small">Import expects the same columns as Export: Date, Type, Title, Category, Amount, Notes. Invalid rows are skipped and reported.</p>
+      </article>
+    </section>
+  </main>
+
+  <!-- Add / edit dialog -->
+  <dialog id="txDialog" aria-labelledby="txDialogTitle">
+    <form id="txForm" novalidate>
+      <h2 id="txDialogTitle">Add transaction</h2>
+      <fieldset class="seg">
+        <legend class="sr">Transaction type</legend>
+        <label><input type="radio" name="type" value="expense" checked><span>Expense</span></label>
+        <label><input type="radio" name="type" value="income"><span>Income</span></label>
+      </fieldset>
+      <label for="title">Title</label>
+      <input id="title" maxlength="60" autocomplete="off">
+      <p class="error" id="err-title"></p>
+      <div class="two">
+        <div><label for="amount">Amount (₹)</label><input id="amount" type="number" step="0.01" inputmode="decimal"><p class="error" id="err-amount"></p></div>
+        <div><label for="date">Date</label><input id="date" type="date"><p class="error" id="err-date"></p></div>
+      </div>
+      <label for="category">Category</label>
+      <select id="category"></select>
+      <p class="error" id="err-category"></p>
+      <label for="notes">Notes (optional)</label>
+      <textarea id="notes" rows="2" maxlength="200"></textarea>
+      <div class="btn-row end-row">
+        <button class="btn ghost" type="button" id="txCancel">Cancel</button>
+        <button class="btn primary" type="submit" id="txSave">Save transaction</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirm dialog -->
+  <dialog id="confirmDialog" aria-labelledby="confirmMsg">
+    <form method="dialog">
+      <h2 id="confirmMsg"></h2>
+      <div class="btn-row end-row">
+        <button class="btn ghost" value="cancel">Cancel</button>
+        <button class="btn danger" value="ok" id="confirmOk">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="script.js"></script>
+</body>
+</html>
